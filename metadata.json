@@ -1,0 +1,8 @@
+{
+  "name": "Typeless CAD-CNC",
+  "description": "CAD Generative & Code Synthesis Engine for procedural 3D modeling and CNC mesh generation.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

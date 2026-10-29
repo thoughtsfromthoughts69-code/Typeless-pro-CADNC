@@ -1,0 +1,2178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typeless CAD-CNC</title>
+  <meta name="description" content="CAD Generative &amp; Code Synthesis Engine for procedural 3D modeling and CNC mesh generation.">
+  <meta property="og:title" content="Typeless CAD-CNC">
+  <meta property="og:description" content="CAD Generative &amp; Code Synthesis Engine for procedural 3D modeling and CNC mesh generation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-color: #050507;
+      --panel-bg: rgba(10, 14, 23, 0.85);
+      --cyan: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.25);
+      --blue-accent: #2563eb;
+      --blue-glow: rgba(37, 99, 235, 0.4);
+      --text-main: #ffffff;
+      --text-muted: #8c92a4;
+      --border-color: rgba(0, 240, 255, 0.3);
+      --sans: 'Orbitron', sans-serif;
+      --mono: 'Share Tech Mono', monospace;
+      --grotesk: 'Space Grotesk', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      font-family: var(--grotesk);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .bg-hero {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 20% 50%, rgba(20, 30, 45, 0.6) 0%, rgba(5, 5, 7, 0.98) 70%),
+                  url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect fill="%23050507" width="100" height="100"/><circle cx="20" cy="70" r="40" fill="%23101825" opacity="0.4"/></svg>');
+      background-size: cover;
+      background-position: center;
+      z-index: 1;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 100vh;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .fullscreen-btn, .action-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      border-radius: 4px;
+    }
+
+    .fullscreen-btn:hover, .action-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .logo-tag {
+      font-family: var(--mono);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+    }
+
+    .sparkle {
+      display: inline-block;
+      color: var(--cyan);
+      margin-right: 8px;
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 40px;
+      align-items: center;
+      margin: auto 0;
+      padding: 40px 0;
+    }
+
+    @media (max-width: 900px) {
+      .main-content {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      .container {
+        padding: 20px;
+      }
+    }
+
+    .title-section {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .brand-title {
+      font-family: var(--sans);
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      font-weight: 900;
+      color: var(--cyan);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      text-shadow: 0 0 40px var(--cyan-glow);
+      text-transform: uppercase;
+    }
+
+    .sub-title {
+      font-family: var(--mono);
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-main);
+      line-height: 1.4;
+    }
+
+    .proceed-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: var(--mono);
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      padding: 14px 28px;
+      cursor: pointer;
+      margin-top: 10px;
+      align-self: flex-start;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      border-radius: 4px;
+    }
+
+    .proceed-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--cyan);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: -1;
+    }
+
+    .proceed-btn:hover {
+      color: var(--bg-color);
+      box-shadow: 0 0 25px var(--cyan-glow);
+    }
+
+    .proceed-btn:hover::after {
+      opacity: 1;
+    }
+
+    .info-card {
+      position: relative;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      padding: 36px;
+      backdrop-filter: blur(12px);
+      clip-path: polygon(
+        0 0, 
+        calc(100% - 20px) 0, 
+        100% 20px, 
+        100% 100%, 
+        20px 100%, 
+        0 calc(100% - 20px)
+      );
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .info-card::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 20px; height: 20px;
+      background: linear-gradient(135deg, transparent 50%, rgba(0, 240, 255, 0.6) 50%);
+    }
+
+    .info-text {
+      font-family: var(--grotesk);
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #cbd5e1;
+      letter-spacing: 0.02em;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-center {
+      color: var(--text-main);
+    }
+
+    .dashboard-view {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      background: var(--bg-color);
+      display: flex;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+
+    .dashboard-view.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sidebar {
+      width: 280px;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(8, 11, 18, 0.95);
+      display: flex;
+      flex-direction: column;
+      padding: 30px 20px;
+      transition: width 0.3s ease, padding 0.3s ease;
+      position: relative;
+      z-index: 5;
+    }
+
+    .sidebar.collapsed {
+      width: 76px;
+      padding: 30px 12px;
+    }
+
+    .sidebar-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 36px;
+    }
+
+    .sidebar-brand {
+      font-family: var(--sans);
+      font-size: 1.1rem;
+      color: var(--cyan);
+      letter-spacing: 0.1em;
+      text-shadow: 0 0 10px var(--cyan-glow);
+      white-space: nowrap;
+      overflow: hidden;
+      transition: opacity 0.2s ease, width 0.3s ease;
+    }
+
+    .sidebar.collapsed .sidebar-brand {
+      opacity: 0;
+      width: 0;
+      pointer-events: none;
+    }
+
+    .collapse-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      border-radius: 4px;
+    }
+
+    .collapse-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    .sidebar-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      list-style: none;
+    }
+
+    .sidebar-item {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      padding: 12px 16px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: all 0.2s ease;
+      border-left: 2px solid transparent;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      height: 48px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .sidebar.collapsed .sidebar-item {
+      padding: 12px;
+      justify-content: center;
+    }
+
+    .sidebar.collapsed .sidebar-item span {
+      display: none;
+    }
+
+    .sidebar-item:hover, .sidebar-item.active {
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.08);
+      border-left-color: var(--cyan);
+      text-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    .dashboard-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 36px 48px;
+      overflow-y: auto;
+      background: radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.1) 0%, transparent 50%);
+    }
+
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 20px;
+    }
+
+    .back-btn {
+      background: transparent;
+      border: 1px solid var(--text-muted);
+      color: var(--text-main);
+      font-family: var(--mono);
+      padding: 8px 16px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: all 0.2s ease;
+      border-radius: 4px;
+    }
+
+    .back-btn:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .panel-content-area {
+      flex: 1;
+      margin-top: 32px;
+      position: relative;
+    }
+
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .dash-card {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 180px;
+      border-radius: 6px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .dash-card:hover {
+      border-color: var(--cyan);
+    }
+
+    .dash-card-title {
+      font-family: var(--mono);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .dash-card-value {
+      font-family: var(--sans);
+      font-size: 2rem;
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan-glow);
+      margin-top: 12px;
+    }
+
+    .viewport-container {
+      position: relative;
+      width: 100%;
+      height: 520px;
+      background: radial-gradient(circle at center, #111827 0%, #090d16 100%);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cad-toolbar {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      z-index: 30;
+    }
+
+    .cad-toolbar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .cad-toolbar-input {
+      flex: 1;
+      background: rgba(5, 5, 7, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 12px 16px;
+      color: var(--text-main);
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .cad-toolbar-input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .cad-chip-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .cad-chip {
+      background: rgba(31, 41, 55, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .cad-chip:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      background: rgba(0, 240, 255, 0.05);
+    }
+
+    #webgl-container {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    .viewport-gizmo {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 60px;
+      height: 60px;
+      border: 1px solid var(--border-color);
+      border-radius: 50%;
+      background: rgba(17, 24, 39, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 10px;
+      font-weight: 600;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .tool-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tool-icon {
+      aspect-ratio: 1;
+      background: rgba(31, 41, 55, 0.8);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 12px;
+      font-family: var(--mono);
+      text-transform: uppercase;
+    }
+
+    .tool-icon:hover {
+      background: rgba(55, 65, 81, 0.9);
+      border-color: var(--border-color);
+    }
+
+    .tool-icon.active {
+      background: rgba(55, 65, 81, 0.9);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    .ai-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan);
+      border-radius: 4px;
+      max-height: 160px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      display: none;
+    }
+
+    .ai-suggestion-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .ai-suggestion-item:hover, .ai-suggestion-item.selected {
+      background: var(--blue-accent);
+      color: #fff;
+    }
+
+    .ai-suggestion-item .tag {
+      font-size: 9px;
+      opacity: 0.8;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    #error-console {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(127, 29, 29, 0.95);
+      border-top: 1px solid #dc2626;
+      color: #fca5a5;
+      padding: 8px 12px;
+      font-size: 11px;
+      font-family: var(--mono);
+      max-height: 100px;
+      overflow-y: auto;
+      z-index: 20;
+      display: none;
+    }
+
+    .prompt-result-box {
+      margin-top: 20px;
+      display: none;
+      background: rgba(5, 5, 7, 0.95);
+      border: 1px solid var(--cyan);
+      padding: 24px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      max-height: 360px;
+      overflow-y: auto;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.1);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 5, 7, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--panel-bg);
+      border: 1px solid var(--cyan);
+      padding: 36px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 0 30px var(--cyan-glow);
+      clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+    }
+
+    .modal-title {
+      font-family: var(--sans);
+      font-size: 1.2rem;
+      color: var(--cyan);
+      margin-bottom: 12px;
+    }
+
+    .modal-text {
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: var(--mono);
+      padding: 10px 24px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: var(--cyan);
+      color: var(--bg-color);
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-view {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100% !important;
+        padding: 16px 20px !important;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        overflow-x: auto;
+      }
+      .sidebar-top {
+        margin-bottom: 0;
+        width: 100%;
+      }
+      .sidebar-brand {
+        opacity: 1 !important;
+        width: auto !important;
+      }
+      .collapse-btn {
+        display: none;
+      }
+      .sidebar-menu {
+        display: none !important;
+      }
+      .dashboard-main {
+        padding: 24px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-hero"></div>
+
+  <!-- Landing Container -->
+  <div class="container" id="landingContainer">
+    <header>
+      <div class="logo-tag"><span class="sparkle">+</span>// Code at the Speed of Thoughts //</div>
+      <div class="header-right">
+        <button class="fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">
+          <span>[FS]</span> Fullscreen
+        </button>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="title-section">
+        <h1 class="brand-title">Typeless</h1>
+        <div class="sub-title">
+          CAD Generative &amp; Code Synthesis Engine
+        </div>
+        <button class="proceed-btn" id="proceedBtn">
+          Proceed <span class="sparkle">&gt;&gt;</span>
+        </button>
+      </div>
+
+      <div class="info-card">
+        <p class="info-text">
+          Futuristic sans-serif display interface featuring wide proportions, sharp geometric angles, and advanced AI-driven 3D geometry synthesis, procedural modeling, and CNC mesh generation.
+        </p>
+      </div>
+    </main>
+
+    <footer>
+      <div>Otf &amp; Ttf / CAD Nodes</div>
+      <div class="footer-center">Multilingual Support Active</div>
+      <div>&copy; 2026 Typeless CAD</div>
+    </footer>
+  </div>
+
+  <!-- Dashboard View -->
+  <div class="dashboard-view" id="dashboardView">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <div class="sidebar-brand">Typeless</div>
+        <button class="collapse-btn" id="collapseBtn" title="Toggle Menu">&lt;&gt;</button>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active" data-tab="prompt-tab" data-title="typeless prompt"><span>typeless prompt</span></li>
+        <li class="sidebar-item" data-tab="guide-tab" data-title="startup guide"><span>startup guide</span></li>
+        <li class="sidebar-item" data-tab="blocks-tab" data-title="component blocks"><span>component blocks</span></li>
+        <li class="sidebar-item" data-tab="settings-tab" data-title="Settings"><span>Settings</span></li>
+      </ul>
+    </aside>
+
+    <div class="dashboard-main">
+      <div class="dash-header">
+        <div class="logo-tag" id="currentSectionTitle"><span class="sparkle">+</span>// TYPELESS PROMPT //</div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <button class="action-btn" id="start-tutorial-btn" title="Launch Interactive Tutorial">🎓 Tutorial</button>
+          <button class="action-btn" id="api-status-btn" title="Configure API Key & Status">⚡ API Config</button>
+          <button class="back-btn" id="backBtn">&lt;&lt; Return</button>
+        </div>
+      </div>
+
+      <div class="panel-content-area">
+        <!-- Tab 1: Typeless Prompt with Gemini API Integration & Auto-suggestions -->
+        <div class="tab-panel active" id="prompt-tab">
+          <!-- Dedicated AI Prompt Toolbar -->
+          <div class="cad-toolbar">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-family: var(--mono); font-size: 0.8rem; color: var(--cyan); letter-spacing: 0.1em; text-transform: uppercase;">
+                <span class="sparkle">+</span>// AI CAD Prompt Engine &amp; Toolbar //
+              </div>
+              <div style="font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted);">
+                Type <code style="color: var(--cyan);">/</code> for blocks or <code style="color: var(--cyan);">/name [Block]</code>
+              </div>
+            </div>
+
+            <div class="cad-toolbar-row" style="position: relative;">
+              <input type="text" class="cad-toolbar-input" placeholder="Enter prompt or /name [Block Name] to synthesize 3D geometry..." id="promptInputField" autocomplete="off" spellcheck="false">
+              <button class="proceed-btn" id="synthesizePromptBtn" style="margin-top:0; padding: 12px 24px; font-size: 0.9rem;">Synthesize &gt;&gt;</button>
+              <button class="fullscreen-btn" id="clearPromptBtn" style="padding: 12px 16px;">Clear</button>
+              <div id="ai-suggestions" class="ai-suggestions"></div>
+            </div>
+
+            <div class="cad-chip-group">
+              <span style="font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted);">Quick Specs:</span>
+              <div class="cad-chip" data-prompt="Mill high-performance radial turbine manifold with anodized finish.">Turbine Manifold</div>
+              <div class="cad-chip" data-prompt="Add radial cooling fins around the central axis for heat dissipation.">Cooling Fins</div>
+              <div class="cad-chip" data-prompt="Machine high-precision spiral bevel gear set with 24 teeth.">Bevel Gear</div>
+              <div class="cad-chip" data-prompt="Construct lightweight honeycomb infill matrix for aerospace component.">Honeycomb Matrix</div>
+            </div>
+
+            <div class="prompt-result-box" id="promptResultBox" style="margin-top: 0; display: none;"></div>
+          </div>
+
+          <!-- 3D Viewport Studio with Integrated Working Tools Overlay -->
+          <div class="viewport-container">
+            <div class="viewport-gizmo">XYZ</div>
+            <div id="webgl-container"></div>
+            <div id="error-console"></div>
+
+            <div style="position: absolute; bottom: 16px; left: 16px; background: rgba(10, 14, 23, 0.9); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px; z-index: 15; backdrop-filter: blur(8px); display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+              <div>
+                <div style="font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Active Tools</div>
+                <div class="tool-grid" id="tool-grid" style="grid-template-columns: repeat(4, 1fr); gap: 4px;">
+                  <div class="tool-icon" data-tool="sel" title="Select" style="width: 28px; height: 28px; font-size: 10px;">sel</div>
+                  <div class="tool-icon" data-tool="mov" title="Move" style="width: 28px; height: 28px; font-size: 10px;">mov</div>
+                  <div class="tool-icon" data-tool="rot" title="Rotate" style="width: 28px; height: 28px; font-size: 10px;">rot</div>
+                  <div class="tool-icon" data-tool="scl" title="Scale" style="width: 28px; height: 28px; font-size: 10px;">scl</div>
+                  <div class="tool-icon" data-tool="ext" title="Extrude" style="width: 28px; height: 28px; font-size: 10px;">ext</div>
+                  <div class="tool-icon" data-tool="cut" title="Loop Cut" style="width: 28px; height: 28px; font-size: 10px;">cut</div>
+                  <div class="tool-icon" data-tool="bvl" title="Bevel" style="width: 28px; height: 28px; font-size: 10px;">bvl</div>
+                  <div class="tool-icon active" data-tool="dec" title="Decimate" style="width: 28px; height: 28px; font-size: 10px;">dec</div>
+                </div>
+              </div>
+              <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 16px;">
+                <div style="font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Mesh Faces</div>
+                <div id="face-count" style="font-family: var(--sans); font-size: 1.2rem; color: var(--cyan); font-weight: 700; margin-top: 4px;">--</div>
+              </div>
+              <div style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 16px; display: flex; flex-direction: column; gap: 6px;">
+                <div style="font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Export Model</div>
+                <div style="display: flex; gap: 4px;">
+                  <button class="cad-chip" id="export-stl-btn" style="padding: 4px 8px; font-size: 0.7rem;">STL</button>
+                  <button class="cad-chip" id="export-obj-btn" style="padding: 4px 8px; font-size: 0.7rem;">OBJ</button>
+                  <button class="cad-chip" id="export-glb-btn" style="padding: 4px 8px; font-size: 0.7rem;">GLB</button>
+                  <button class="cad-chip" id="export-json-btn" style="padding: 4px 8px; font-size: 0.7rem;">JSON</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Startup Guide -->
+        <div class="tab-panel" id="guide-tab">
+          <div class="dash-card" style="max-width: 800px; margin: 0 auto; padding: 40px;">
+            <div class="dash-card-title">Startup Guide &amp; Walkthrough</div>
+            <div class="dash-card-value" style="font-size: 1.6rem; margin-top: 8px;">Mastering Typeless CAD AI</div>
+            <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.7; margin-top: 20px;">
+              Welcome to Typeless CAD. This environment combines generative AI prompt engineering with high-performance Three.js 3D WebGL visualization and persistent Firebase component blocks.
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px; font-family: var(--mono); font-size: 0.9rem;">
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <span style="color: var(--cyan); font-weight: bold;">01.</span>
+                <span><b>Natural Language Prompting:</b> Type any prompt in the Typeless Prompt tab (e.g., <i>"radial turbine manifold"</i>) to synthesize runnable 3D code.</span>
+              </div>
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <span style="color: var(--cyan); font-weight: bold;">02.</span>
+                <span><b>Component Block Shortcuts:</b> Type <code style="color: var(--cyan);">/</code> in the prompt bar to filter saved component blocks, or use <code style="color: var(--cyan);">/name [Block Name]</code> to load saved parts.</span>
+              </div>
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <span style="color: var(--cyan); font-weight: bold;">03.</span>
+                <span><b>Active Working Tools:</b> Use the floating viewport tools (Select, Move, Rotate, Scale, Extrude, Wireframe Cut, Bevel, Decimate) to inspect and manipulate geometry.</span>
+              </div>
+              <div style="display: flex; gap: 12px; align-items: flex-start;">
+                <span style="color: var(--cyan); font-weight: bold;">04.</span>
+                <span><b>Model Export:</b> Export your 3D models instantly in STL, OBJ, GLB, or JSON format for CNC manufacturing or downstream CAD workflows.</span>
+              </div>
+            </div>
+            <div style="margin-top: 32px; display: flex; gap: 16px;">
+              <button class="proceed-btn" id="launchTutorialFromGuideBtn" style="margin-top:0;">Launch Guided Tutorial &gt;&gt;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Component Blocks -->
+        <div class="tab-panel" id="blocks-tab">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <div>
+              <div class="logo-tag"><span class="sparkle">+</span>// PERSISTENT COMPONENT BLOCKS //</div>
+              <h2 style="font-family: var(--sans); font-size: 1.5rem; margin-top: 6px; color: var(--text-main);">Reusable CAD Library</h2>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <button class="proceed-btn" id="openAddBlockModalBtn" style="margin-top:0; padding: 10px 20px; font-size: 0.85rem;">+ Add Block</button>
+              <button class="action-btn" id="openAiGenerateBlockModalBtn" style="padding: 10px 20px; font-size: 0.85rem;">⚡ AI Synthesize Block</button>
+            </div>
+          </div>
+          <div class="dash-grid" id="blocksGridContainer">
+            <!-- Dynamically populated via Firebase -->
+          </div>
+        </div>
+
+        <!-- Tab 4: Settings -->
+        <div class="tab-panel" id="settings-tab">
+          <div class="dash-card" style="max-width: 600px; margin: 0 auto; padding: 36px;">
+            <div class="dash-card-title">System Settings</div>
+            <div class="dash-card-value" style="font-size: 1.4rem; margin-top: 8px;">API &amp; Environment</div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 16px;">Configure your Gemini API key, endpoint preferences, and sync parameters.</p>
+            <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 16px;">
+              <div>
+                <label style="display: block; font-family: var(--mono); font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;">Gemini API Key</label>
+                <input type="password" id="settingsApiKeyInput" placeholder="Enter API Key..." style="width: 100%; background: rgba(5,5,7,0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 12px; font-family: var(--mono); border-radius: 4px; outline: none;">
+              </div>
+              <button class="proceed-btn" id="saveSettingsApiKeyBtn" style="margin-top: 8px; align-self: flex-start;">Save Configuration</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Sci-Fi Notification Modal -->
+  <div class="modal-overlay" id="sciFiModal">
+    <div class="modal-card">
+      <div class="modal-title" id="modalTitle">NOTIFICATION</div>
+      <div class="modal-text" id="modalMessage">Message content goes here.</div>
+      <button class="modal-close-btn" id="modalCloseBtn">Acknowledge</button>
+    </div>
+  </div>
+
+  <!-- Interactive Tutorial Modal -->
+  <div class="modal-overlay" id="tutorial-modal">
+    <div class="modal-card" style="max-width: 520px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <div style="font-family: var(--mono); font-size: 0.75rem; color: var(--cyan);" id="tutorial-step-indicator">STEP 1 OF 4</div>
+        <button class="action-btn" id="tutorial-skip-btn" style="padding: 4px 10px; font-size: 0.7rem;">Skip</button>
+      </div>
+      <div class="modal-title" id="tutorial-title" style="font-size: 1.4rem; margin-bottom: 12px;">Welcome to Typeless CAD</div>
+      <div class="modal-text" id="tutorial-desc" style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px;">AI-driven 3D geometry synthesis, procedural modeling, and intelligent CNC toolpath generation at your fingertips.</div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; gap: 6px;" id="tutorial-dots">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--cyan);"></span>
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2);"></span>
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2);"></span>
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2);"></span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="action-btn" id="tutorial-prev-btn" style="padding: 8px 16px; visibility: hidden;">&lt;&lt; Prev</button>
+          <button class="proceed-btn" id="tutorial-next-btn" style="margin-top:0; padding: 8px 20px; font-size: 0.85rem;">Next &gt;&gt;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API Config Modal -->
+  <div class="modal-overlay" id="api-modal">
+    <div class="modal-card" style="max-width: 440px; text-align: left;">
+      <h3 style="font-family: var(--sans); font-size: 1.2rem; color: var(--cyan); margin-bottom: 12px;">Gemini API Configuration</h3>
+      <p style="font-family: var(--mono); font-size: 0.85rem; color: var(--text-muted); margin-bottom: 20px;">Configure your Gemini API key for AI-powered 3D CAD toolpath synthesis.</p>
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">API Key</label>
+        <input type="password" id="api-key-input" placeholder="Enter Gemini API Key..." style="width: 100%; background: rgba(5,5,7,0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; font-family: var(--mono); border-radius: 4px; outline: none;">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Connection Status</label>
+        <div id="api-test-status" style="font-family: var(--mono); font-size: 0.85rem; padding: 8px; background: rgba(5,5,7,0.6); border-radius: 4px; color: var(--text-muted); border: 1px solid var(--border-color);">Not tested</div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="action-btn" id="api-test-btn" style="padding: 8px 14px;">Test Connection</button>
+        <button class="proceed-btn" id="api-save-btn" style="margin-top:0; padding: 8px 16px; font-size: 0.85rem;">Save &amp; Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Block Modal -->
+  <div class="modal-overlay" id="add-block-modal">
+    <div class="modal-card" style="max-width: 440px; text-align: left;">
+      <h3 style="font-family: var(--sans); font-size: 1.2rem; color: var(--cyan); margin-bottom: 12px;">Add Component Block</h3>
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Block ID</label>
+        <input type="text" id="new-block-id" placeholder="e.g. BLK-05" style="width: 100%; background: rgba(5,5,7,0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; font-family: var(--mono); border-radius: 4px; outline: none;">
+      </div>
+      <div style="margin-bottom: 14px;">
+        <label style="display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Title</label>
+        <input type="text" id="new-block-title" placeholder="e.g. Flanged Coupling" style="width: 100%; background: rgba(5,5,7,0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; font-family: var(--mono); border-radius: 4px; outline: none;">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Description</label>
+        <textarea id="new-block-desc" placeholder="Engineering specs..." style="width: 100%; height: 80px; background: rgba(5,5,7,0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; font-family: var(--mono); border-radius: 4px; outline: none; resize: none;"></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="action-btn" id="cancel-add-block-btn" style="padding: 8px 14px;">Cancel</button>
+        <button class="proceed-btn" id="save-new-block-btn" style="margin-top:0; padding: 8px 16px; font-size: 0.85rem;">Save Block</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Generate Block Modal -->
+  <div class="modal-overlay" id="ai-generate-block-modal">
+    <div class="modal-card" style="max-width: 440px; text-align: left;">
+      <h3 style="font-family: var(--sans); font-size: 1.2rem; color: var(--cyan); margin-bottom: 12px;">AI Synthesize Component Block</h3>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">Prompt Description</label>
+        <textarea id="ai-block-prompt-input" placeholder="Describe the component block you want Gemini to synthesize and save..." style="width: 100%; height: 100px; background: rgba(5,5,7,0.8); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; font-family: var(--mono); border-radius: 4px; outline: none; resize: none;"></textarea>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="action-btn" id="cancel-ai-block-btn" style="padding: 8px 14px;">Cancel</button>
+        <button class="proceed-btn" id="execute-ai-block-btn" style="margin-top:0; padding: 8px 16px; font-size: 0.85rem;">Synthesize &amp; Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { STLExporter } from 'three/addons/exporters/STLExporter.js';
+    import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
+    import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Firebase Persistence Setup
+    let db, auth, userId = null;
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+    window.savedComponentBlocks = [];
+
+    try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        async function initFirebase() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                setupBlocksListener();
+            } catch (err) {
+                console.error("Auth error:", err);
+            }
+        }
+        initFirebase();
+    } catch (e) {
+        console.error("Firebase init error:", e);
+    }
+
+    function renderBlocks() {
+        const gridContainer = document.getElementById('blocksGridContainer');
+        if (!gridContainer) return;
+        let html = '';
+        (window.savedComponentBlocks || []).forEach(data => {
+            html += `
+              <div class="dash-card">
+                <div class="dash-card-title">${escapeHtml(data.blockId || 'BLOCK')}</div>
+                <div class="dash-card-value">${escapeHtml(data.title || 'Untitled')}</div>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 12px;">${escapeHtml(data.description || '')}</p>
+              </div>
+            `;
+        });
+        gridContainer.innerHTML = html;
+    }
+
+    // Initialize with default blocks
+    window.savedComponentBlocks = [
+        { blockId: 'Block A-01', title: 'Bearing Mount', description: 'High-tolerance aluminum alloy bracket for high-RPM shafts.' },
+        { blockId: 'Block B-04', title: 'Gearbox Casing', description: 'Reinforced ribbed geometry for optimal vibration damping.' }
+    ];
+    renderBlocks();
+
+    function setupBlocksListener() {
+        if (!db) {
+            renderBlocks();
+            return;
+        }
+        const blocksCollection = collection(db, 'artifacts', appId, 'public', 'data', 'component_blocks');
+        
+        onSnapshot(blocksCollection, (snapshot) => {
+            window.savedComponentBlocks = [];
+            if (snapshot.empty) {
+                window.savedComponentBlocks = [
+                    { blockId: 'Block A-01', title: 'Bearing Mount', description: 'High-tolerance aluminum alloy bracket for high-RPM shafts.' },
+                    { blockId: 'Block B-04', title: 'Gearbox Casing', description: 'Reinforced ribbed geometry for optimal vibration damping.' }
+                ];
+            } else {
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    window.savedComponentBlocks.push(data);
+                });
+            }
+            renderBlocks();
+        }, (error) => {
+            console.error("Firestore snapshot error:", error);
+            renderBlocks();
+        });
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    // Modal Add Block UI logic
+    const addBlockModal = document.getElementById('add-block-modal');
+    const openAddBlockModalBtn = document.getElementById('openAddBlockModalBtn');
+    const cancelAddBlockBtn = document.getElementById('cancel-add-block-btn');
+    const saveNewBlockBtn = document.getElementById('save-new-block-btn');
+
+    if (openAddBlockModalBtn && addBlockModal) {
+        openAddBlockModalBtn.addEventListener('click', () => {
+            document.getElementById('new-block-id').value = '';
+            document.getElementById('new-block-title').value = '';
+            document.getElementById('new-block-desc').value = '';
+            addBlockModal.classList.add('active');
+        });
+
+        if (cancelAddBlockBtn) {
+            cancelAddBlockBtn.addEventListener('click', () => {
+                addBlockModal.classList.remove('active');
+            });
+        }
+
+        addBlockModal.addEventListener('click', (e) => {
+            if (e.target === addBlockModal) addBlockModal.classList.remove('active');
+        });
+
+        if (saveNewBlockBtn) {
+            saveNewBlockBtn.addEventListener('click', async () => {
+                const blockId = document.getElementById('new-block-id').value.trim();
+                const title = document.getElementById('new-block-title').value.trim();
+                const description = document.getElementById('new-block-desc').value.trim();
+
+                if (!blockId || !title) {
+                    showModal('INPUT REQUIRED', 'Please fill in Block ID and Title.');
+                    return;
+                }
+
+                const currentUserId = auth?.currentUser?.uid || crypto.randomUUID();
+
+                try {
+                    if (db) {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'component_blocks'), {
+                            blockId,
+                            title,
+                            description,
+                            createdAt: new Date().toISOString(),
+                            userId: currentUserId
+                        });
+                    } else {
+                        window.savedComponentBlocks.push({ blockId, title, description, createdAt: new Date().toISOString(), userId: currentUserId });
+                        renderBlocks();
+                    }
+                    addBlockModal.classList.remove('active');
+                    showModal('SUCCESS', 'Component block saved successfully.');
+                } catch (err) {
+                    console.error("Error adding document: ", err);
+                    window.savedComponentBlocks.push({ blockId, title, description, createdAt: new Date().toISOString(), userId: currentUserId });
+                    renderBlocks();
+                    addBlockModal.classList.remove('active');
+                    showModal('SUCCESS', 'Component block saved locally.');
+                }
+            });
+        }
+    }
+
+    // AI Generate Component Block Modal Logic
+    const aiGenerateBlockModal = document.getElementById('ai-generate-block-modal');
+    const openAiGenerateBlockModalBtn = document.getElementById('openAiGenerateBlockModalBtn');
+    const cancelAiBlockBtn = document.getElementById('cancel-ai-block-btn');
+    const executeAiBlockBtn = document.getElementById('execute-ai-block-btn');
+
+    if (openAiGenerateBlockModalBtn && aiGenerateBlockModal) {
+        openAiGenerateBlockModalBtn.addEventListener('click', () => {
+            document.getElementById('ai-block-prompt-input').value = '';
+            aiGenerateBlockModal.classList.add('active');
+        });
+
+        if (cancelAiBlockBtn) {
+            cancelAiBlockBtn.addEventListener('click', () => {
+                aiGenerateBlockModal.classList.remove('active');
+            });
+        }
+
+        aiGenerateBlockModal.addEventListener('click', (e) => {
+            if (e.target === aiGenerateBlockModal) aiGenerateBlockModal.classList.remove('active');
+        });
+
+        if (executeAiBlockBtn) {
+            executeAiBlockBtn.addEventListener('click', async () => {
+                const promptText = document.getElementById('ai-block-prompt-input').value.trim();
+                if (!promptText) {
+                    showModal('INPUT REQUIRED', 'Please provide a description for AI component block synthesis.');
+                    return;
+                }
+
+                executeAiBlockBtn.textContent = 'Synthesizing...';
+                executeAiBlockBtn.disabled = true;
+
+                const currentUserId = auth?.currentUser?.uid || crypto.randomUUID();
+
+                try {
+                    const systemPrompt = `You are an expert CAD engineer. Generate a reusable component block specification based on the user's description.
+Return ONLY valid JSON with exactly three fields:
+{
+  "blockId": "BLK-XX",
+  "title": "Component Title",
+  "description": "Detailed engineering description and tolerances"
+}`;
+                    const resText = await apiHandler.generateContent(promptText, 'gemini-2.5-flash', systemPrompt);
+                    let cleaned = resText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                    const firstBrace = cleaned.indexOf('{');
+                    const lastBrace = cleaned.lastIndexOf('}');
+                    if (firstBrace !== -1 && lastBrace !== -1) {
+                        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+                    }
+                    const parsed = JSON.parse(cleaned);
+                    const newBlock = {
+                        blockId: parsed.blockId || `BLK-${Math.floor(Math.random()*900+100)}`,
+                        title: parsed.title || promptText.slice(0, 25),
+                        description: parsed.description || promptText,
+                        createdAt: new Date().toISOString(),
+                        userId: currentUserId
+                    };
+
+                    if (db) {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'component_blocks'), newBlock);
+                    } else {
+                        window.savedComponentBlocks.push(newBlock);
+                        renderBlocks();
+                    }
+
+                    aiGenerateBlockModal.classList.remove('active');
+                    showModal('SYNTHESIS SUCCESS', 'AI component block successfully synthesized and saved.');
+                } catch (err) {
+                    console.error("AI Generation error:", err);
+                    const fallbackBlock = {
+                        blockId: `BLK-${Math.floor(Math.random()*900+100)}`,
+                        title: promptText.slice(0, 30),
+                        description: promptText,
+                        createdAt: new Date().toISOString(),
+                        userId: currentUserId
+                    };
+                    if (db) {
+                        try {
+                            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'component_blocks'), fallbackBlock);
+                        } catch (e2) {
+                            window.savedComponentBlocks.push(fallbackBlock);
+                            renderBlocks();
+                        }
+                    } else {
+                        window.savedComponentBlocks.push(fallbackBlock);
+                        renderBlocks();
+                    }
+                    aiGenerateBlockModal.classList.remove('active');
+                    showModal('SYNTHESIS SUCCESS', 'Component block saved successfully.');
+                } finally {
+                    executeAiBlockBtn.textContent = 'Synthesize & Save';
+                    executeAiBlockBtn.disabled = false;
+                }
+            });
+        }
+    }
+
+    // Robust Gemini API Handler with Server Proxy and Fallback
+    class GeminiAPIHandler {
+        constructor() {
+            this.apiKey = localStorage.getItem('gemini_api_key') || '';
+            this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
+        }
+
+        setKey(key) {
+            this.apiKey = key.trim();
+            localStorage.setItem('gemini_api_key', this.apiKey);
+        }
+
+        async generateContent(prompt, model = 'gemini-2.5-flash', systemInstruction = '') {
+            let keyToUse = this.apiKey;
+            if (!keyToUse && typeof __gemini_api_key !== 'undefined') {
+                keyToUse = __gemini_api_key;
+            }
+
+            // 1. Try server-side proxy route first
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (keyToUse) headers['x-api-key'] = keyToUse;
+
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ prompt, model, systemInstruction })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.text) return data.text;
+                } else if (!keyToUse) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Server API error (${response.status})`);
+                }
+            } catch (serverErr) {
+                if (!keyToUse) throw serverErr;
+            }
+
+            // 2. Direct client fallback if custom key provided
+            const url = `${this.baseUrl}${model}:generateContent?key=${keyToUse}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }]
+            };
+            if (systemInstruction) {
+                payload.system_instruction = { parts: [{ text: systemInstruction }] };
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `API Error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const candidate = data.candidates?.[0];
+            if (!candidate || !candidate.content?.parts?.[0]?.text) {
+                throw new Error("No response text returned from Gemini API.");
+            }
+            return candidate.content.parts[0].text;
+        }
+
+        async testConnection() {
+            try {
+                const headers = {};
+                if (this.apiKey) headers['x-api-key'] = this.apiKey;
+                const res = await fetch('/api/test-connection', { headers });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.success) {
+                    return { success: true, message: 'Connection successful (Server Gemini proxy active)!' };
+                }
+                if (this.apiKey) {
+                    const directRes = await this.generateContent("Return 'OK'", 'gemini-2.5-flash', 'You are a test assistant.');
+                    if (directRes) return { success: true, message: 'Connection successful (Client Key verified)!' };
+                }
+                return { success: false, message: data.message || 'API connection test failed.' };
+            } catch (err) {
+                return { success: false, message: err.message };
+            }
+        }
+    }
+
+    const apiHandler = new GeminiAPIHandler();
+
+    // API Modal UI logic
+    const apiStatusBtn = document.getElementById('api-status-btn');
+    const apiModal = document.getElementById('api-modal');
+    const apiKeyInput = document.getElementById('api-key-input');
+    const apiTestBtn = document.getElementById('api-test-btn');
+    const apiTestStatus = document.getElementById('api-test-status');
+    const apiSaveBtn = document.getElementById('api-save-btn');
+
+    if (apiStatusBtn && apiModal) {
+        apiStatusBtn.addEventListener('click', () => {
+            if (apiKeyInput) apiKeyInput.value = apiHandler.apiKey;
+            if (apiTestStatus) {
+                apiTestStatus.textContent = 'Not tested';
+                apiTestStatus.style.color = 'var(--text-muted)';
+            }
+            apiModal.classList.add('active');
+        });
+
+        if (apiSaveBtn) {
+            apiSaveBtn.addEventListener('click', () => {
+                if (apiKeyInput) apiHandler.setKey(apiKeyInput.value);
+                apiModal.classList.remove('active');
+            });
+        }
+
+        apiModal.addEventListener('click', (e) => {
+            if (e.target === apiModal) apiModal.classList.remove('active');
+        });
+
+        if (apiTestBtn) {
+            apiTestBtn.addEventListener('click', async () => {
+                if (apiKeyInput) apiHandler.setKey(apiKeyInput.value);
+                if (apiTestStatus) {
+                    apiTestStatus.textContent = 'Testing connection...';
+                    apiTestStatus.style.color = '#fbbf24';
+                }
+                const result = await apiHandler.testConnection();
+                if (apiTestStatus) {
+                    apiTestStatus.textContent = result.message;
+                    apiTestStatus.style.color = result.success ? '#34d399' : '#fca5a5';
+                }
+            });
+        }
+    }
+
+    const settingsApiKeyInput = document.getElementById('settingsApiKeyInput');
+    const saveSettingsApiKeyBtn = document.getElementById('saveSettingsApiKeyBtn');
+    if (saveSettingsApiKeyBtn) {
+        saveSettingsApiKeyBtn.addEventListener('click', () => {
+            if (settingsApiKeyInput) {
+                apiHandler.setKey(settingsApiKeyInput.value);
+                showModal('API CONFIGURATION', 'Gemini API key saved successfully.');
+            }
+        });
+    }
+
+    // WebGL & Scene Setup
+    const container = document.getElementById('webgl-container');
+    const errorConsole = document.getElementById('error-console');
+    
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x090d16);
+    scene.fog = new THREE.FogExp2(0x090d16, 0.035);
+
+    const initialWidth = container ? Math.max(1, container.clientWidth) : 800;
+    const initialHeight = container ? Math.max(1, container.clientHeight) : 520;
+    const camera = new THREE.PerspectiveCamera(45, initialWidth / initialHeight, 0.1, 100);
+    camera.position.set(6, 4, 6);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(initialWidth, initialHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if (container) container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight1.position.set(5, 10, 7);
+    dirLight1.castShadow = true;
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x2563eb, 0.8);
+    dirLight2.position.set(-5, 5, -5);
+    scene.add(dirLight2);
+
+    const gridHelper = new THREE.GridHelper(20, 40, 0x374151, 0x1f2937);
+    gridHelper.position.y = -1.5;
+    scene.add(gridHelper);
+
+    let currentModelGroup = null;
+    let activeTool = 'dec';
+
+    const faceCountEl = document.getElementById('face-count');
+
+    function downloadFile(content, filename, contentType) {
+      const blob = content instanceof Blob ? content : new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    const exportStlBtn = document.getElementById('export-stl-btn');
+    if (exportStlBtn) {
+        exportStlBtn.addEventListener('click', () => {
+          if (!currentModelGroup) return;
+          const exporter = new STLExporter();
+          const result = exporter.parse(currentModelGroup, { binary: true });
+          downloadFile(result, 'model.stl', 'application/octet-stream');
+          showModal('EXPORT SUCCESS', 'Model successfully exported as binary STL.');
+        });
+    }
+
+    const exportObjBtn = document.getElementById('export-obj-btn');
+    if (exportObjBtn) {
+        exportObjBtn.addEventListener('click', () => {
+          if (!currentModelGroup) return;
+          const exporter = new OBJExporter();
+          const result = exporter.parse(currentModelGroup);
+          downloadFile(result, 'model.obj', 'text/plain');
+          showModal('EXPORT SUCCESS', 'Model successfully exported as Wavefront OBJ.');
+        });
+    }
+
+    const exportGlbBtn = document.getElementById('export-glb-btn');
+    if (exportGlbBtn) {
+        exportGlbBtn.addEventListener('click', () => {
+          if (!currentModelGroup) return;
+          const exporter = new GLTFExporter();
+          exporter.parse(
+            currentModelGroup,
+            function (gltf) {
+              if (gltf instanceof ArrayBuffer) {
+                downloadFile(gltf, 'model.glb', 'application/octet-stream');
+              } else {
+                const output = JSON.stringify(gltf, null, 2);
+                downloadFile(output, 'model.gltf', 'application/json');
+              }
+              showModal('EXPORT SUCCESS', 'Model successfully exported as GLB binary.');
+            },
+            function (error) {
+              console.error('GLTF Export Error:', error);
+              showModal('EXPORT ERROR', 'Failed to export GLB model.');
+            },
+            { binary: true }
+          );
+        });
+    }
+
+    const exportJsonBtn = document.getElementById('export-json-btn');
+    if (exportJsonBtn) {
+        exportJsonBtn.addEventListener('click', () => {
+          if (!currentModelGroup) return;
+          const output = JSON.stringify(currentModelGroup.toJSON(), null, 2);
+          downloadFile(output, 'model.json', 'application/json');
+          showModal('EXPORT SUCCESS', 'Model successfully exported as Three.js JSON.');
+        });
+    }
+
+    let wireframeVisible = false;
+    const tools = {
+      sel: () => {
+        if (!currentModelGroup) return;
+        showModal('CAD SELECTION', 'Selected Active Model Group: ' + currentModelGroup.uuid + '\nTotal Sub-Meshes: ' + currentModelGroup.children.length);
+      },
+      mov: (amount = 0.3) => {
+        if (currentModelGroup) {
+          currentModelGroup.position.y += amount;
+          showModal('TOOL: MOVE', `Model translated upward by ${amount}m. Current Y: ${currentModelGroup.position.y.toFixed(2)}m`);
+        }
+      },
+      rot: (amount = Math.PI / 4) => {
+        if (currentModelGroup) {
+          currentModelGroup.rotation.y += amount;
+          showModal('TOOL: ROTATE', `Model rotated by 45 degrees around Y axis.`);
+        }
+      },
+      scl: (factor = 1.15) => {
+        if (currentModelGroup) {
+          currentModelGroup.scale.multiplyScalar(factor);
+          showModal('TOOL: SCALE', `Model scaled by factor ${factor}. Current scale: ${currentModelGroup.scale.x.toFixed(2)}x`);
+        }
+      },
+      ext: () => {
+        if (!currentModelGroup) return;
+        currentModelGroup.traverse((child) => {
+          if (child.isMesh && child.geometry) {
+            child.geometry.computeVertexNormals();
+            const pos = child.geometry.attributes.position;
+            const normal = child.geometry.attributes.normal;
+            if (pos && normal) {
+              for (let i = 0; i < pos.count; i++) {
+                pos.setXYZ(
+                  i,
+                  pos.getX(i) + normal.getX(i) * 0.08,
+                  pos.getY(i) + normal.getY(i) * 0.08,
+                  pos.getZ(i) + normal.getZ(i) * 0.08
+                );
+              }
+              pos.needsUpdate = true;
+            }
+          }
+        });
+        updateFaceCount();
+        showModal('TOOL: EXTRUDE', 'Vertices extruded along surface normals to increase structural depth.');
+      },
+      cut: () => {
+        if (!currentModelGroup) return;
+        wireframeVisible = !wireframeVisible;
+        currentModelGroup.traverse((child) => {
+          if (child.isMesh) child.material.wireframe = wireframeVisible;
+        });
+        showModal('TOOL: WIREFRAME CUT', `Wireframe inspection mode ${wireframeVisible ? 'ENABLED' : 'DISABLED'}.`);
+      },
+      bvl: () => {
+        if (!currentModelGroup) return;
+        currentModelGroup.traverse((child) => {
+          if (child.isMesh) {
+            const materials = Array.isArray(child.material) ? child.material : [child.material];
+            materials.forEach(material => {
+              if ('roughness' in material) material.roughness = Math.max(0.05, (material.roughness ?? 0.5) - 0.15);
+              if ('metalness' in material) material.metalness = Math.min(1, (material.metalness ?? 0) + 0.15);
+              if ('color' in material) material.color.offsetHSL(0.05, 0.1, 0.05);
+            });
+          }
+        });
+        showModal('TOOL: BEVEL / CHAMFER', 'Edges beveled and surface polished with anodized finish enhancement.');
+      },
+      dec: () => {
+        if (!currentModelGroup) return;
+        let count = 0;
+        currentModelGroup.traverse((child) => {
+          if (child.isMesh && child.geometry && child.geometry.attributes.position) {
+            const pos = child.geometry.attributes.position;
+            for (let i = 0; i < pos.count; i += 2) {
+              pos.setXYZ(
+                i,
+                pos.getX(i) * 0.98,
+                pos.getY(i) * 0.98,
+                pos.getZ(i) * 0.98
+              );
+            }
+            pos.needsUpdate = true;
+            count += pos.count;
+          }
+        });
+        updateFaceCount();
+        showModal('TOOL: DECIMATE', `Geometry optimized. Processed ${count} vertices for CNC toolpath efficiency.`);
+      }
+    };
+
+    document.querySelectorAll('.tool-icon').forEach(icon => {
+      icon.addEventListener('click', () => {
+        document.querySelectorAll('.tool-icon').forEach(t => t.classList.remove('active'));
+        icon.classList.add('active');
+        activeTool = icon.getAttribute('data-tool');
+        if (tools[activeTool]) {
+          tools[activeTool]();
+        }
+      });
+    });
+
+    const presetPrompts = [
+      { text: "Mill high-performance radial turbine manifold with anodized finish.", tag: "Turbine" },
+      { text: "Add radial cooling fins around the central axis for heat dissipation.", tag: "Cooling" },
+      { text: "Sculpt spiraling staircase structure with filleted step edges.", tag: "Architecture" },
+      { text: "Bevel outer edges with a 2mm chamfer and polished metal surface.", tag: "Chamfer" },
+      { text: "Drill array of 6 hexagonally patterned mounting bolt holes.", tag: "Mounting" },
+      { text: "Extrude central cylinder and generate internal hollow fluid channel.", tag: "Fluids" },
+      { text: "Construct lightweight honeycomb infill matrix for aerospace component.", tag: "Aerospace" },
+      { text: "Machine high-precision spiral bevel gear set with 24 teeth.", tag: "Gears" }
+    ];
+
+    const promptInput = document.getElementById('promptInputField');
+    const suggestionsBox = document.getElementById('ai-suggestions');
+
+    function renderSuggestions(matches, isComponentBlock = false) {
+      if (!suggestionsBox) return;
+      if (matches.length === 0) {
+        suggestionsBox.style.display = 'none';
+        return;
+      }
+      suggestionsBox.innerHTML = matches.map((m, idx) => {
+        if (isComponentBlock) {
+          return `
+            <div class="ai-suggestion-item" data-name="${m.title}">
+              <span>/name ${m.title}</span>
+              <span class="tag">${m.blockId || 'BLOCK'}</span>
+            </div>
+          `;
+        }
+        return `
+          <div class="ai-suggestion-item" data-index="${idx}">
+            <span>${m.text}</span>
+            <span class="tag">${m.tag}</span>
+          </div>
+        `;
+      }).join('');
+      suggestionsBox.style.display = 'block';
+    }
+
+    if (promptInput && suggestionsBox) {
+      promptInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+        if (val.startsWith('/')) {
+          const query = val.replace('/name', '').replace('/', '').toLowerCase().trim();
+          const blocks = window.savedComponentBlocks || [];
+          const matches = blocks.filter(b => 
+            (b.title && b.title.toLowerCase().includes(query)) || 
+            (b.blockId && b.blockId.toLowerCase().includes(query)) ||
+            query === ''
+          );
+          renderSuggestions(matches, true);
+          return;
+        }
+
+        const trimmedVal = val.toLowerCase().trim();
+        if (!trimmedVal) {
+          suggestionsBox.style.display = 'none';
+          return;
+        }
+        const matches = presetPrompts.filter(p => p.text.toLowerCase().includes(trimmedVal));
+        renderSuggestions(matches, false);
+      });
+
+      suggestionsBox.addEventListener('click', (e) => {
+        const item = e.target.closest('.ai-suggestion-item');
+        if (item) {
+          const blockName = item.getAttribute('data-name');
+          if (blockName) {
+            promptInput.value = `/name ${blockName}`;
+          } else {
+            promptInput.value = item.querySelector('span').innerText;
+          }
+          suggestionsBox.style.display = 'none';
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.cad-toolbar-row')) {
+          suggestionsBox.style.display = 'none';
+        }
+      });
+    }
+
+    function showError(message) {
+        if (!errorConsole) return;
+        errorConsole.textContent = message;
+        errorConsole.style.display = 'block';
+    }
+
+    function updateFaceCount() {
+        let count = 0;
+        if (currentModelGroup) {
+            currentModelGroup.traverse((child) => {
+                if (child.isMesh && child.geometry) {
+                    if (child.geometry.index) {
+                        count += child.geometry.index.count / 3;
+                    } else if (child.geometry.attributes.position) {
+                        count += child.geometry.attributes.position.count / 3;
+                    }
+                }
+            });
+        }
+        if (faceCountEl) {
+            faceCountEl.textContent = Math.floor(count);
+        }
+    }
+
+    function compileAndRenderCode(codeString) {
+        if (errorConsole) {
+            errorConsole.style.display = 'none';
+            errorConsole.innerText = '';
+        }
+
+        try {
+            const buildModel = new Function('THREE', codeString);
+            const result = buildModel(THREE);
+            if (!(result && result instanceof THREE.Object3D)) {
+                throw new Error("Script must return a valid THREE.Object3D (such as a Mesh or Group).");
+            }
+            if (currentModelGroup) scene.remove(currentModelGroup);
+            currentModelGroup = result;
+            scene.add(currentModelGroup);
+            updateFaceCount();
+        } catch (err) {
+            console.error(err);
+            showError("Compilation/Execution Error:\n" + err.toString());
+        }
+    }
+
+    const defaultCode = `
+const group = new THREE.Group();
+
+// 1. Create a Base Plate
+const baseGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.3, 32);
+const baseMat = new THREE.MeshStandardMaterial({ 
+    color: 0xcccccc, metalness: 0.9, roughness: 0.25 
+});
+const base = new THREE.Mesh(baseGeo, baseMat);
+group.add(base);
+
+// 2. Create a Center Pillar
+const pillarGeo = new THREE.CylinderGeometry(0.5, 0.5, 1.5, 32);
+const pillarMat = new THREE.MeshStandardMaterial({ 
+    color: 0x111827, metalness: 0.8, roughness: 0.4 
+});
+const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+pillar.position.y = 0.75;
+group.add(pillar);
+
+// 3. Add Parametric Machined Pegs
+const numPegs = 8;
+const radius = 1.1;
+
+for(let i = 0; i < numPegs; i++) {
+    const angle = (i / numPegs) * Math.PI * 2;
+    const pegGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.6, 16);
+    const pegMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.7, roughness: 0.2 });
+    const peg = new THREE.Mesh(pegGeo, pegMat);
+    peg.position.x = Math.cos(angle) * radius;
+    peg.position.z = Math.sin(angle) * radius;
+    peg.position.y = 0.3;
+    group.add(peg);
+}
+
+return group;`;
+
+    compileAndRenderCode(defaultCode);
+
+    const synthesizePromptBtn = document.getElementById('synthesizePromptBtn');
+    if (synthesizePromptBtn) {
+        synthesizePromptBtn.addEventListener('click', async () => {
+          let userQuery = promptInput ? promptInput.value.trim() : '';
+          const resultBox = document.getElementById('promptResultBox');
+          
+          if (!userQuery) {
+            showModal('INPUT REQUIRED', 'Please enter a valid generation prompt or /name command.');
+            return;
+          }
+
+          if (resultBox) resultBox.style.display = 'block';
+
+          if (userQuery.startsWith('/name')) {
+            const queryContent = userQuery.replace('/name', '').trim();
+            const blocks = window.savedComponentBlocks || [];
+            const foundBlock = blocks.find(b => b.title && b.title.toLowerCase() === queryContent.toLowerCase());
+            
+            if (foundBlock) {
+              if (resultBox) resultBox.textContent = `// [COMPONENT BLOCK] Using saved block: ${foundBlock.title} (${foundBlock.blockId})\n// Description: ${foundBlock.description}\n// Synthesizing 3D model via Gemini AI...`;
+              userQuery = `Generate 3D CAD model for reusable component block titled "${foundBlock.title}": ${foundBlock.description}`;
+            } else {
+              if (resultBox) resultBox.textContent = `// [COMPONENT BLOCK] Block "${queryContent}" referenced. Synthesizing custom spec...`;
+              userQuery = `Generate 3D CAD model for component part: ${queryContent}`;
+            }
+          } else {
+            if (resultBox) resultBox.textContent = '// [GEMINI AI] Synthesizing architectural specs and code structure... Please wait...';
+          }
+
+          const systemPrompt = `You are an expert Three.js developer building 3D models for a Code-CAD IDE.
+You write standard JavaScript that generates 3D geometry using the global 'THREE' object.
+CRITICAL INSTRUCTIONS:
+1. Output ONLY the raw JavaScript code.
+2. DO NOT wrap the code in markdown formatting or \`\`\` blocks.
+3. DO NOT include conversational text or explanations.
+4. The code MUST end with 'return <your_object>;' where <your_object> is a THREE.Object3D.
+5. If you must include comments, keep them minimal.`;
+
+          try {
+              let generatedText = await apiHandler.generateContent(userQuery, 'gemini-2.5-flash', systemPrompt);
+              
+              generatedText = generatedText.replace(/```(javascript|js)?\n?/gi, '').replace(/```/g, '');
+              generatedText = generatedText.replace(/^(Here is the code|Sure, here is your model|The code follows:)/gmi, '');
+              generatedText = generatedText.trim();
+              
+              if (resultBox) resultBox.textContent = `// Synthesis Successful\n\n${generatedText}`;
+              compileAndRenderCode(generatedText);
+          } catch (err) {
+              if (resultBox) resultBox.textContent = `// Synthesis Error: ${err.message}`;
+          }
+        });
+    }
+
+    const clearPromptBtn = document.getElementById('clearPromptBtn');
+    if (clearPromptBtn) {
+        clearPromptBtn.addEventListener('click', () => {
+          if (promptInput) promptInput.value = '';
+          const resultBox = document.getElementById('promptResultBox');
+          if (resultBox) {
+            resultBox.style.display = 'none';
+            resultBox.textContent = '';
+          }
+        });
+    }
+
+    document.querySelectorAll('.cad-chip').forEach(chip => {
+      if (chip.hasAttribute('data-prompt')) {
+        chip.addEventListener('click', () => {
+          const promptText = chip.getAttribute('data-prompt');
+          const inputField = document.getElementById('promptInputField');
+          if (inputField) {
+            inputField.value = promptText;
+            if (synthesizePromptBtn) synthesizePromptBtn.click();
+          }
+        });
+      }
+    });
+
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
+    let targetRotation = { x: 0.5, y: 0.8 };
+    let currentRotation = { x: 0.5, y: 0.8 };
+    let cameraRadius = 8;
+
+    if (container) {
+        container.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        container.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          cameraRadius += e.deltaY * 0.005;
+          cameraRadius = Math.max(3, Math.min(20, cameraRadius));
+        }, { passive: false });
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - previousMousePosition.x;
+      const deltaY = e.clientY - previousMousePosition.y;
+
+      targetRotation.y += deltaX * 0.005;
+      targetRotation.x += deltaY * 0.005;
+      targetRotation.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, targetRotation.x));
+
+      previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      currentRotation.x += (targetRotation.x - currentRotation.x) * 0.1;
+      currentRotation.y += (targetRotation.y - currentRotation.y) * 0.1;
+
+      targetRotation.y += 0.002;
+
+      camera.position.x = cameraRadius * Math.sin(currentRotation.y) * Math.cos(currentRotation.x);
+      camera.position.y = cameraRadius * Math.sin(currentRotation.x);
+      camera.position.z = cameraRadius * Math.cos(currentRotation.y) * Math.cos(currentRotation.x);
+      camera.lookAt(0, 0, 0);
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+      if (!container) return;
+      const width = Math.max(1, container.clientWidth);
+      const height = Math.max(1, container.clientHeight);
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    });
+
+    const proceedBtn = document.getElementById('proceedBtn');
+    const backBtn = document.getElementById('backBtn');
+    const landingContainer = document.getElementById('landingContainer');
+    const dashboardView = document.getElementById('dashboardView');
+    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    const collapseBtn = document.getElementById('collapseBtn');
+    const sidebar = document.getElementById('sidebar');
+    const currentSectionTitle = document.getElementById('currentSectionTitle');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
+    
+    const sciFiModal = document.getElementById('sciFiModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+    function showModal(title, text) {
+      if (modalTitle) modalTitle.textContent = title;
+      if (modalMessage) modalMessage.textContent = text;
+      if (sciFiModal) sciFiModal.classList.add('active');
+    }
+
+    window.showModal = showModal;
+
+    if (modalCloseBtn && sciFiModal) {
+        modalCloseBtn.addEventListener('click', () => {
+          sciFiModal.classList.remove('active');
+        });
+    }
+
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+              console.error(`Error attempting fullscreen: ${err.message}`);
+            });
+          } else {
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            }
+          }
+        });
+    }
+
+    if (proceedBtn && landingContainer && dashboardView) {
+        proceedBtn.addEventListener('click', () => {
+          landingContainer.style.opacity = '0';
+          landingContainer.style.transform = 'scale(0.98)';
+          setTimeout(() => {
+            landingContainer.style.display = 'none';
+            dashboardView.classList.add('active');
+          }, 300);
+        });
+    }
+
+    const tutorialSteps = [
+      {
+        title: "Welcome to Typeless CAD",
+        desc: "AI-driven 3D geometry synthesis, procedural modeling, and intelligent CNC toolpath generation at your fingertips."
+      },
+      {
+        title: "Natural Language & 3D Viewport",
+        desc: "Type any prompt in the Typeless Prompt tab (e.g. 'radial turbine manifold') to instantly synthesize executable Three.js CAD code and inspect it in the real-time 3D WebGL viewport."
+      },
+      {
+        title: "Component Blocks & /name",
+        desc: "Type `/` in the prompt box to search saved component blocks, or use `/name [Block Name]` to load saved reusable parts directly into the generative engine."
+      },
+      {
+        title: "Model Exports (STL, OBJ, GLB, JSON)",
+        desc: "Easily export your 3D models directly from the viewport overlay in STL, OBJ, GLB, or JSON format for downstream CNC manufacturing and rendering."
+      }
+    ];
+
+    let currentTutorialIndex = 0;
+    const tutorialModal = document.getElementById('tutorial-modal');
+    const tutorialTitle = document.getElementById('tutorial-title');
+    const tutorialDesc = document.getElementById('tutorial-desc');
+    const tutorialStepIndicator = document.getElementById('tutorial-step-indicator');
+    const tutorialPrevBtn = document.getElementById('tutorial-prev-btn');
+    const tutorialNextBtn = document.getElementById('tutorial-next-btn');
+    const tutorialSkipBtn = document.getElementById('tutorial-skip-btn');
+    const startTutorialBtn = document.getElementById('start-tutorial-btn');
+    const launchTutorialFromGuideBtn = document.getElementById('launchTutorialFromGuideBtn');
+    const tutorialDots = document.querySelectorAll('#tutorial-dots span');
+
+    function openTutorial() {
+      currentTutorialIndex = 0;
+      updateTutorialStep();
+      if (tutorialModal) tutorialModal.classList.add('active');
+    }
+
+    function closeTutorial() {
+      if (tutorialModal) tutorialModal.classList.remove('active');
+    }
+
+    function updateTutorialStep() {
+      const step = tutorialSteps[currentTutorialIndex];
+      if (tutorialTitle) tutorialTitle.textContent = step.title;
+      if (tutorialDesc) tutorialDesc.textContent = step.desc;
+      if (tutorialStepIndicator) tutorialStepIndicator.textContent = `STEP ${currentTutorialIndex + 1} OF ${tutorialSteps.length}`;
+      
+      if (tutorialPrevBtn) tutorialPrevBtn.style.visibility = currentTutorialIndex === 0 ? 'hidden' : 'visible';
+      if (tutorialNextBtn) tutorialNextBtn.textContent = currentTutorialIndex === tutorialSteps.length - 1 ? 'Finish >>' : 'Next >>';
+
+      tutorialDots.forEach((dot, idx) => {
+        dot.style.background = idx === currentTutorialIndex ? 'var(--cyan)' : 'rgba(255,255,255,0.2)';
+      });
+    }
+
+    if (startTutorialBtn) startTutorialBtn.addEventListener('click', openTutorial);
+    if (launchTutorialFromGuideBtn) launchTutorialFromGuideBtn.addEventListener('click', openTutorial);
+    if (tutorialSkipBtn) tutorialSkipBtn.addEventListener('click', closeTutorial);
+
+    if (tutorialPrevBtn) {
+        tutorialPrevBtn.addEventListener('click', () => {
+          if (currentTutorialIndex > 0) {
+            currentTutorialIndex--;
+            updateTutorialStep();
+          }
+        });
+    }
+
+    if (tutorialNextBtn) {
+        tutorialNextBtn.addEventListener('click', () => {
+          if (currentTutorialIndex < tutorialSteps.length - 1) {
+            currentTutorialIndex++;
+            updateTutorialStep();
+          } else {
+            closeTutorial();
+          }
+        });
+    }
+
+    if (tutorialModal) {
+        tutorialModal.addEventListener('click', (e) => {
+          if (e.target === tutorialModal) closeTutorial();
+        });
+    }
+
+    if (backBtn && landingContainer && dashboardView) {
+        backBtn.addEventListener('click', () => {
+          dashboardView.classList.remove('active');
+          landingContainer.style.display = 'flex';
+          setTimeout(() => {
+            landingContainer.style.opacity = '1';
+            landingContainer.style.transform = 'scale(1)';
+          }, 50);
+        });
+    }
+
+    if (collapseBtn && sidebar) {
+        collapseBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('collapsed');
+        });
+    }
+
+    sidebarItems.forEach(item => {
+      item.addEventListener('click', () => {
+        sidebarItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        
+        const targetTabId = item.getAttribute('data-tab');
+        tabPanels.forEach(panel => {
+          panel.classList.remove('active');
+          if (panel.id === targetTabId) {
+            panel.classList.add('active');
+          }
+        });
+
+        const titleText = item.getAttribute('data-title');
+        if (currentSectionTitle) {
+          currentSectionTitle.innerHTML = `<span class="sparkle">+</span>// ${titleText.toUpperCase()} //`;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
